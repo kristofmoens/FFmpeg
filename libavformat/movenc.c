@@ -2065,7 +2065,7 @@ static int mov_write_track_udta_tag(AVIOContext *pb, MOVMuxContext *mov,
     int ret, size;
     uint8_t *buf;
 
-    if (st == NULL || mov->fc->flags & AVFMT_FLAG_BITEXACT)
+    if (!st || mov->fc->flags & AVFMT_FLAG_BITEXACT)
         return 0;
 
     ret = avio_open_dyn_buf(&pb_buf);
@@ -3517,7 +3517,7 @@ int ff_mov_write_packet(AVFormatContext *s, AVPacket *pkt)
         (AV_RB16(pkt->data) & 0xfff0) == 0xfff0) {
         if (!s->streams[pkt->stream_index]->nb_frames) {
             av_log(s, AV_LOG_ERROR, "Malformed AAC bitstream detected: "
-                   "use audio bitstream filter 'aac_adtstoasc' to fix it "
+                   "use the audio bitstream filter 'aac_adtstoasc' to fix it "
                    "('-bsf:a aac_adtstoasc' option with ffmpeg)\n");
             return -1;
         }
@@ -4008,7 +4008,7 @@ static int mov_write_header(AVFormatContext *s)
     /* Default mode == MP4 */
     mov->mode = MODE_MP4;
 
-    if (s->oformat != NULL) {
+    if (s->oformat) {
         if (!strcmp("3gp", s->oformat->name)) mov->mode = MODE_3GP;
         else if (!strcmp("3g2", s->oformat->name)) mov->mode = MODE_3GP|MODE_3G2;
         else if (!strcmp("mov", s->oformat->name)) mov->mode = MODE_MOV;

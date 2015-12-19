@@ -713,34 +713,6 @@ static int determinable_frame_size(AVCodecContext *avctx)
 }
 
 /**
- * Get the number of samples of an audio frame. Return -1 on error.
- */
-int ff_get_audio_frame_size(AVCodecContext *enc, int size, int mux)
-{
-    int frame_size;
-
-    /* give frame_size priority if demuxing */
-    if (!mux && enc->frame_size > 1)
-        return enc->frame_size;
-
-    if ((frame_size = av_get_audio_frame_duration(enc, size)) > 0)
-        return frame_size;
-
-    /* Fall back on using frame_size if muxing. */
-    if (enc->frame_size > 1)
-        return enc->frame_size;
-
-    //For WMA we currently have no other means to calculate duration thus we
-    //do it here by assuming CBR, which is true for all known cases.
-    if (!mux && enc->bit_rate>0 && size>0 && enc->sample_rate>0 && enc->block_align>1) {
-        if (enc->codec_id == AV_CODEC_ID_WMAV1 || enc->codec_id == AV_CODEC_ID_WMAV2)
-            return  ((int64_t)size * 8 * enc->sample_rate) / enc->bit_rate;
-    }
-
-    return -1;
-}
-
-/**
  * Return the frame duration in seconds. Return 0 if not available.
  */
 void ff_compute_frame_duration(int *pnum, int *pden, AVStream *st,
@@ -775,7 +747,7 @@ void ff_compute_frame_duration(int *pnum, int *pden, AVStream *st,
         }
         break;
     case AVMEDIA_TYPE_AUDIO:
-        frame_size = ff_get_audio_frame_size(st->codec, pkt->size, 0);
+        frame_size = av_get_audio_frame_duration(st->codec, pkt->size);
         if (frame_size <= 0 || st->codec->sample_rate <= 0)
             break;
         *pnum = frame_size;
@@ -3553,6 +3525,7 @@ void avformat_free_context(AVFormatContext *s)
     av_dict_free(&s->metadata);
     av_freep(&s->streams);
     av_freep(&s->internal);
+    flush_packet_queue(s);
     av_free(s);
 }
 
